@@ -30,11 +30,39 @@
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
+
+typedef enum {
+  STATE_INITIAL,      // Stav 1 - červená bliká 250ms, modrá 500ms
+  STATE_BUTTON_TOGGLE,// Stav 2 - červená toggle, modrá bliká 100ms
+  STATE_TRANSITIONAL, // Stav pro detekci dlouhého stisku
+  STATE_CUSTOM_PERIOD // Stav 4 - červená bliká s periodou podle délky stisku, modrá 100ms svítí/400ms nesvítí
+} StavAplikace;
+
+typedef enum {
+  LED_MODE_OFF,       // LED je trvale vypnutá
+  LED_MODE_ON,        // LED je trvale zapnutá
+  LED_MODE_BLINK,     // LED bliká s definovanou periodou
+  LED_MODE_BLINK_ASYM // LED bliká s asymetrickou periodou (jen modrá ve stavu 4)
+} LEDMode;
+
+typedef struct {
+  GPIO_TypeDef* port;
+  uint16_t pin;
+  LEDMode mode;
+  uint32_t blinkPeriod;
+  uint32_t lastToggleTime;
+  bool state;
+  uint32_t onTime;     // Doba zapnutí (pro asymetrické blikání)
+  uint32_t offTime;    // Doba vypnutí (pro asymetrické blikání)
+} Led;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define BTN_FILTER   (20)
+#define BTN_FILTER          (50)      // Filtr zákmitů tlačítka v ms
+#define LONG_PRESS_DURATION (1000)    // Minimální doba pro dlouhý stisk v ms
+#define UART_RX_BUFFER_SIZE (128)     // Velikost bufferu pro příjem UART
+#define MAX_COMMAND_LENGTH  (20)      // Maximální délka příkazu
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -51,6 +79,52 @@ DMA_HandleTypeDef hdma_lpuart1_tx;
 volatile bool transmissionComplete = false;
 char testString[100 + 1]; // jeden znak navic pro ukoncovaci znak
 char outputBuffer[200]; // buffer pro vystupni znaky
+
+// UART příjem
+uint8_t uartRxBuffer[UART_RX_BUFFER_SIZE];
+uint8_t uartRxChar;
+char commandBuffer[MAX_COMMAND_LENGTH + 1];
+uint8_t commandLength = 0;
+volatile bool commandReady = false;
+
+// Stav aplikace
+StavAplikace currentState = STATE_INITIAL;
+uint32_t buttonPressTime = 0;
+uint32_t buttonReleaseTime = 0;
+bool buttonPressed = false;
+uint32_t lastButtonDebounceTime = 0;
+bool lastButtonState = false;
+uint32_t customBlinkPeriod = 500; // Výchozí perioda pro vlastní blikání
+
+// Definice LED
+Led redLed = {
+  .port = LD3_GPIO_Port,
+  .pin = LD3_Pin,
+  .mode = LED_MODE_BLINK,
+  .blinkPeriod = 250,
+  .lastToggleTime = 0,
+  .state = false
+};
+
+Led blueLed = {
+  .port = LD2_GPIO_Port,
+  .pin = LD2_Pin,
+  .mode = LED_MODE_BLINK,
+  .blinkPeriod = 500,
+  .lastToggleTime = 0,
+  .state = false,
+  .onTime = 100,  // Pro asymetrické blikání
+  .offTime = 400  // Pro asymetrické blikání
+};
+
+Led greenLed = {
+  .port = GPIOC,
+  .pin = GPIO_PIN_7,
+  .mode = LED_MODE_OFF,
+  .blinkPeriod = 500,
+  .lastToggleTime = 0,
+  .state = false
+};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -61,6 +135,11 @@ static void MX_DMA_Init(void);
 /* USER CODE BEGIN PFP */
 void generaceStringuStoZnaku(void);
 void spustTest(int mode);
+void updateLed(Led* led, uint32_t currentTime);
+void handleButton(uint32_t currentTime);
+void sendUartMessage(const char* message);
+void processCommand(void);
+void startUartRxInterrupt(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -71,6 +150,29 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
   if (huart->Instance == LPUART1) {
     transmissionComplete = true;
+  }
+}
+
+// Callback function for UART reception complete
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+  if (huart->Instance == LPUART1) {
+    // Echo received character
+    HAL_UART_Transmit_IT(&hlpuart1, &uartRxChar, 1);
+
+    // Process received character
+    if (uartRxChar == '\r' || uartRxChar == '\n') {
+      if (commandLength > 0) {
+        commandBuffer[commandLength] = '\0';
+        commandReady = true;
+        commandLength = 0;
+      }
+    } else if (commandLength < MAX_COMMAND_LENGTH) {
+      commandBuffer[commandLength++] = uartRxChar;
+    }
+
+    // Start listening for next character
+    HAL_UART_Receive_IT(&hlpuart1, &uartRxChar, 1);
   }
 }
 
@@ -144,6 +246,229 @@ void spustTest(int mode)
   HAL_Delay(500);
 }
 
+// Aktualizace stavu LED
+void updateLed(Led* led, uint32_t currentTime)
+{
+  if (led->mode == LED_MODE_OFF) {
+    // LED je trvale vypnutá
+    if (led->state) {
+      HAL_GPIO_WritePin(led->port, led->pin, GPIO_PIN_RESET);
+      led->state = false;
+    }
+  }
+  else if (led->mode == LED_MODE_ON) {
+    // LED je trvale zapnutá
+    if (!led->state) {
+      HAL_GPIO_WritePin(led->port, led->pin, GPIO_PIN_SET);
+      led->state = true;
+    }
+  }
+  else if (led->mode == LED_MODE_BLINK) {
+    // LED bliká se symetrickou periodou
+    if (currentTime - led->lastToggleTime >= led->blinkPeriod / 2) {
+      led->state = !led->state;
+      HAL_GPIO_WritePin(led->port, led->pin, led->state ? GPIO_PIN_SET : GPIO_PIN_RESET);
+      led->lastToggleTime = currentTime;
+    }
+  }
+  else if (led->mode == LED_MODE_BLINK_ASYM) {
+    // LED bliká s asymetrickou periodou
+    uint32_t interval = led->state ? led->onTime : led->offTime;
+    if (currentTime - led->lastToggleTime >= interval) {
+      led->state = !led->state;
+      HAL_GPIO_WritePin(led->port, led->pin, led->state ? GPIO_PIN_SET : GPIO_PIN_RESET);
+      led->lastToggleTime = currentTime;
+    }
+  }
+}
+
+// Zpracování tlačítka
+void handleButton(uint32_t currentTime)
+{
+  // Čtení stavu tlačítka
+  bool currentButtonState = (HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin) == GPIO_PIN_SET);
+
+  // Filtr zákmitů tlačítka
+  if (currentButtonState != lastButtonState) {
+    lastButtonDebounceTime = currentTime;
+  }
+
+  // Pokud je stav tlačítka stabilní po dobu filtru
+  if (currentTime - lastButtonDebounceTime > BTN_FILTER) {
+    // Pokud se stav změnil od posledního stabilního stavu
+    if (currentButtonState != buttonPressed) {
+      buttonPressed = currentButtonState;
+
+      // Stisk tlačítka
+      if (buttonPressed) {
+        buttonPressTime = currentTime;
+
+        // Ve stavu 2 přepnout stav červené LED po stisku
+        if (currentState == STATE_BUTTON_TOGGLE) {
+          redLed.state = !redLed.state;
+          HAL_GPIO_WritePin(redLed.port, redLed.pin, redLed.state ? GPIO_PIN_SET : GPIO_PIN_RESET);
+
+          // Informace o změně stavu červené LED
+          sprintf(outputBuffer, "\r\nRed LED %s\r\n", redLed.state ? "ON" : "OFF");
+          sendUartMessage(outputBuffer);
+        }
+
+        // Přechod do pomocného stavu pro detekci dlouhého stisku
+        if (currentState == STATE_BUTTON_TOGGLE) {
+          currentState = STATE_TRANSITIONAL;
+
+          // Informace o přechodu do přechodného stavu
+          sendUartMessage("\r\nEntered transitional state\r\n");
+        }
+      }
+      // Uvolnění tlačítka
+      else {
+        buttonReleaseTime = currentTime;
+        uint32_t pressDuration = buttonReleaseTime - buttonPressTime;
+
+        // Dlouhý stisk - přechod do stavu 4
+        if (currentState == STATE_TRANSITIONAL && pressDuration >= LONG_PRESS_DURATION) {
+          currentState = STATE_CUSTOM_PERIOD;
+          customBlinkPeriod = pressDuration;
+          redLed.mode = LED_MODE_BLINK;
+          redLed.blinkPeriod = customBlinkPeriod;
+          blueLed.mode = LED_MODE_BLINK_ASYM;
+
+          // Informace o přechodu do stavu 4
+          sprintf(outputBuffer, "\r\nEntered custom period state. Period: %lu ms\r\n", customBlinkPeriod);
+          sendUartMessage(outputBuffer);
+        }
+        // Krátký stisk - návrat do stavu 2
+        else if (currentState == STATE_TRANSITIONAL) {
+          currentState = STATE_BUTTON_TOGGLE;
+
+          // Informace o návratu do stavu 2
+          sendUartMessage("\r\nReturned to button toggle state\r\n");
+        }
+        // Ve stavu 4 - nastavení nové periody blikání červené LED
+        else if (currentState == STATE_CUSTOM_PERIOD) {
+          customBlinkPeriod = pressDuration;
+          redLed.blinkPeriod = customBlinkPeriod;
+
+          // Informace o nové periodě blikání
+          sprintf(outputBuffer, "\r\nNew blink period: %lu ms\r\n", customBlinkPeriod);
+          sendUartMessage(outputBuffer);
+        }
+        // Ve stavu 1 - přechod do stavu 2
+        else if (currentState == STATE_INITIAL) {
+          currentState = STATE_BUTTON_TOGGLE;
+          redLed.mode = LED_MODE_OFF;
+          blueLed.mode = LED_MODE_BLINK;
+          blueLed.blinkPeriod = 200; // 100ms perioda (50ms on, 50ms off)
+
+          // Informace o přechodu do stavu 2
+          sendUartMessage("\r\nEntered button toggle state\r\n");
+        }
+      }
+    }
+  }
+
+  // Uložení posledního stavu tlačítka
+  lastButtonState = currentButtonState;
+}
+
+// Odeslání zprávy přes UART
+void sendUartMessage(const char* message)
+{
+  HAL_UART_Transmit(&hlpuart1, (uint8_t*)message, strlen(message), 1000);
+}
+
+// Nastavení UART přerušení pro příjem
+void startUartRxInterrupt(void)
+{
+  HAL_UART_Receive_IT(&hlpuart1, &uartRxChar, 1);
+}
+
+// Zpracování přijatého příkazu
+void processCommand(void)
+{
+  // Konvertovat příkaz na velká písmena pro snadnější porovnání
+  char upperCommand[MAX_COMMAND_LENGTH + 1];
+  strcpy(upperCommand, commandBuffer);
+  for (int i = 0; upperCommand[i]; i++) {
+    if (upperCommand[i] >= 'a' && upperCommand[i] <= 'z') {
+      upperCommand[i] = upperCommand[i] - 'a' + 'A';
+    }
+  }
+
+  // Příkaz pro rozsvícení červené LED
+  if (strcmp(upperCommand, "RON") == 0) {
+    redLed.mode = LED_MODE_ON;
+    sprintf(outputBuffer, "\r\nCommand: %s - Red LED turned ON\r\n", commandBuffer);
+    sendUartMessage(outputBuffer);
+  }
+  // Příkaz pro rozsvícení modré LED
+  else if (strcmp(upperCommand, "BON") == 0) {
+    blueLed.mode = LED_MODE_ON;
+    sprintf(outputBuffer, "\r\nCommand: %s - Blue LED turned ON\r\n", commandBuffer);
+    sendUartMessage(outputBuffer);
+  }
+  // Příkaz pro rozsvícení zelené LED
+  else if (strcmp(upperCommand, "GON") == 0) {
+    greenLed.mode = LED_MODE_ON;
+    sprintf(outputBuffer, "\r\nCommand: %s - Green LED turned ON\r\n", commandBuffer);
+    sendUartMessage(outputBuffer);
+  }
+  // Příkaz pro zhasnutí červené LED
+  else if (strcmp(upperCommand, "ROFF") == 0) {
+    redLed.mode = LED_MODE_OFF;
+    sprintf(outputBuffer, "\r\nCommand: %s - Red LED turned OFF\r\n", commandBuffer);
+    sendUartMessage(outputBuffer);
+  }
+  // Příkaz pro zhasnutí modré LED
+  else if (strcmp(upperCommand, "BOFF") == 0) {
+    blueLed.mode = LED_MODE_OFF;
+    sprintf(outputBuffer, "\r\nCommand: %s - Blue LED turned OFF\r\n", commandBuffer);
+    sendUartMessage(outputBuffer);
+  }
+  // Příkaz pro zhasnutí zelené LED
+  else if (strcmp(upperCommand, "GOFF") == 0) {
+    greenLed.mode = LED_MODE_OFF;
+    sprintf(outputBuffer, "\r\nCommand: %s - Green LED turned OFF\r\n", commandBuffer);
+    sendUartMessage(outputBuffer);
+  }
+  // Příkaz pro reset do stavu 1
+  else if (strcmp(upperCommand, "RESET") == 0) {
+    currentState = STATE_INITIAL;
+    redLed.mode = LED_MODE_BLINK;
+    redLed.blinkPeriod = 250;
+    blueLed.mode = LED_MODE_BLINK;
+    blueLed.blinkPeriod = 500;
+    greenLed.mode = LED_MODE_OFF;
+
+    sprintf(outputBuffer, "\r\nCommand: %s - Reset to initial state\r\n", commandBuffer);
+    sendUartMessage(outputBuffer);
+  }
+  // Příkaz pro blikání s definovanou periodou
+  else if (strncmp(upperCommand, "BLIK ", 5) == 0) {
+    int period = atoi(&upperCommand[5]);
+    if (period > 0) {
+      redLed.mode = LED_MODE_BLINK;
+      redLed.blinkPeriod = period;
+      blueLed.mode = LED_MODE_BLINK;
+      blueLed.blinkPeriod = period;
+      greenLed.mode = LED_MODE_BLINK;
+      greenLed.blinkPeriod = period;
+
+      sprintf(outputBuffer, "\r\nCommand: %s - All LEDs blinking with period %d ms\r\n", commandBuffer, period);
+      sendUartMessage(outputBuffer);
+    } else {
+      sprintf(outputBuffer, "\r\nError: Invalid period in command '%s'\r\n", commandBuffer);
+      sendUartMessage(outputBuffer);
+    }
+  }
+  // Neznámý příkaz
+  else {
+    sprintf(outputBuffer, "\r\nError: Unknown command '%s'\r\n", commandBuffer);
+    sendUartMessage(outputBuffer);
+  }
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -178,11 +503,25 @@ int main(void)
   MX_LPUART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
-  // generace 100 znaku
-  generaceStringuStoZnaku();
+  // Nastavení pinů pro zelenou LED (PC7)
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+  GPIO_InitStruct.Pin = GPIO_PIN_7;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  // Zaslani start zpravy
-  HAL_UART_Transmit(&hlpuart1, (uint8_t*)"UART Transmission Test\r\n", 24, 100);
+  // Nastartování příjmu UART přes přerušení
+  startUartRxInterrupt();
+
+  // Zaslání start zprávy
+  sendUartMessage("\r\n--- LED Control System Started ---\r\n");
+  sendUartMessage("Available commands:\r\n");
+  sendUartMessage("RON, BON, GON - Turn ON Red/Blue/Green LED\r\n");
+  sendUartMessage("ROFF, BOFF, GOFF - Turn OFF Red/Blue/Green LED\r\n");
+  sendUartMessage("RESET - Reset to initial state\r\n");
+  sendUartMessage("BLIK n - Blink all LEDs with period n ms\r\n");
 
   /* USER CODE END 2 */
 
@@ -190,13 +529,65 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    // spusteni testu pro kazdy mod
-    spustTest(0); // Polling
-    spustTest(1); // Interrupt
-    spustTest(2); // DMA
+    uint32_t currentTime = HAL_GetTick();
 
-    // Chvilku pockej pred dalsim testovanim... chci aby byl vystup trochu citelny
-    HAL_Delay(1000);
+    // Zpracování příkazů
+    if (commandReady) {
+      processCommand();
+      commandReady = false;
+    }
+
+    // Zpracování tlačítka
+    handleButton(currentTime);
+
+    // Aktualizace stavu LED diod
+
+    // Červená LED - chování podle aktuálního stavu
+    if (currentState == STATE_INITIAL) {
+      // Ve stavu 1 bliká s periodou 250ms
+      if (redLed.mode != LED_MODE_ON && redLed.mode != LED_MODE_OFF) {
+        redLed.mode = LED_MODE_BLINK;
+        redLed.blinkPeriod = 250;
+      }
+    } else if (currentState == STATE_BUTTON_TOGGLE) {
+      // Ve stavu 2 je ovládána tlačítkem
+      if (redLed.mode != LED_MODE_ON && redLed.mode != LED_MODE_OFF) {
+        redLed.mode = LED_MODE_OFF; // Základní stav, přepínán tlačítkem
+      }
+    } else if (currentState == STATE_CUSTOM_PERIOD) {
+      // Ve stavu 4 bliká s periodou podle délky stisku
+      if (redLed.mode != LED_MODE_ON && redLed.mode != LED_MODE_OFF) {
+        redLed.mode = LED_MODE_BLINK;
+        redLed.blinkPeriod = customBlinkPeriod;
+      }
+    }
+
+    // Modrá LED - chování podle aktuálního stavu
+    if (currentState == STATE_INITIAL) {
+      // Ve stavu 1 bliká s periodou 500ms
+      if (blueLed.mode != LED_MODE_ON && blueLed.mode != LED_MODE_OFF) {
+        blueLed.mode = LED_MODE_BLINK;
+        blueLed.blinkPeriod = 500;
+      }
+    } else if (currentState == STATE_BUTTON_TOGGLE || currentState == STATE_TRANSITIONAL) {
+      // Ve stavu 2 a přechodném stavu bliká s periodou 100ms
+      if (blueLed.mode != LED_MODE_ON && blueLed.mode != LED_MODE_OFF) {
+        blueLed.mode = LED_MODE_BLINK;
+        blueLed.blinkPeriod = 200; // 100ms perioda (50ms on, 50ms off)
+      }
+    } else if (currentState == STATE_CUSTOM_PERIOD) {
+      // Ve stavu 4 bliká asynchronně 100ms svítí/400ms nesvítí
+      if (blueLed.mode != LED_MODE_ON && blueLed.mode != LED_MODE_OFF) {
+        blueLed.mode = LED_MODE_BLINK_ASYM;
+        blueLed.onTime = 100;
+        blueLed.offTime = 400;
+      }
+    }
+
+    // Aktualizace stavu jednotlivých LED
+    updateLed(&redLed, currentTime);
+    updateLed(&blueLed, currentTime);
+    updateLed(&greenLed, currentTime);
 
     /* USER CODE END WHILE */
 
