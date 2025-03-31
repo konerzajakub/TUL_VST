@@ -7,23 +7,23 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, ALLOC, LOAD, READONLY, DATA
   1 .text         00006760  080001c0  080001c0  000011c0  2**4
                   CONTENTS, ALLOC, LOAD, READONLY, CODE
-  2 .rodata       000005f4  08006920  08006920  00007920  2**2
+  2 .rodata       000005f0  08006920  08006920  00007920  2**2
                   CONTENTS, ALLOC, LOAD, READONLY, DATA
-  3 .ARM.extab    00000000  08006f14  08006f14  000080b4  2**0
+  3 .ARM.extab    00000000  08006f10  08006f10  000080b4  2**0
                   CONTENTS
-  4 .ARM          00000008  08006f14  08006f14  00007f14  2**2
+  4 .ARM          00000008  08006f10  08006f10  00007f10  2**2
                   CONTENTS, ALLOC, LOAD, READONLY, DATA
-  5 .preinit_array 00000000  08006f1c  08006f1c  000080b4  2**0
+  5 .preinit_array 00000000  08006f18  08006f18  000080b4  2**0
                   CONTENTS, ALLOC, LOAD, DATA
-  6 .init_array   00000004  08006f1c  08006f1c  00007f1c  2**2
+  6 .init_array   00000004  08006f18  08006f18  00007f18  2**2
                   CONTENTS, ALLOC, LOAD, DATA
-  7 .fini_array   00000004  08006f20  08006f20  00007f20  2**2
+  7 .fini_array   00000004  08006f1c  08006f1c  00007f1c  2**2
                   CONTENTS, ALLOC, LOAD, DATA
-  8 .data         000000b4  20000000  08006f24  00008000  2**2
+  8 .data         000000b4  20000000  08006f20  00008000  2**2
                   CONTENTS, ALLOC, LOAD, DATA
-  9 .bss          000003b8  200000b4  08006fd8  000080b4  2**2
+  9 .bss          000003b8  200000b4  08006fd4  000080b4  2**2
                   ALLOC
- 10 ._user_heap_stack 00000604  2000046c  08006fd8  0000846c  2**0
+ 10 ._user_heap_stack 00000604  2000046c  08006fd4  0000846c  2**0
                   ALLOC
  11 .ARM.attributes 00000030  00000000  00000000  000080b4  2**0
                   CONTENTS, READONLY
@@ -39,9 +39,9 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, READONLY, DEBUGGING, OCTETS
  17 .debug_line   0000d5e7  00000000  00000000  00042f59  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_str    000ff5b4  00000000  00000000  00050540  2**0
+ 18 .debug_str    000ff5b3  00000000  00000000  00050540  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .comment      00000043  00000000  00000000  0014faf4  2**0
+ 19 .comment      00000043  00000000  00000000  0014faf3  2**0
                   CONTENTS, READONLY
  20 .debug_frame  000031d0  00000000  00000000  0014fb38  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
@@ -784,7 +784,7 @@ void handleButton(uint32_t currentTime)
  800080c:	681b      	ldr	r3, [r3, #0]
  800080e:	687a      	ldr	r2, [r7, #4]
  8000810:	1ad3      	subs	r3, r2, r3
- 8000812:	2b64      	cmp	r3, #100	@ 0x64
+ 8000812:	2b32      	cmp	r3, #50	@ 0x32
  8000814:	f240 80a6 	bls.w	8000964 <handleButton+0x188>
     // Pokud se stav změnil od posledního stabilního stavu
     if (currentButtonState != buttonPressed) {
@@ -869,7 +869,7 @@ void handleButton(uint32_t currentTime)
  800089a:	701a      	strb	r2, [r3, #0]
 
           // Informace o přechodu do přechodného stavu
-          sendUartMessage("\r\nEntered transitional state\r\n");
+          sendUartMessage("\r\nVstup do prechodoveho stavu\r\n");
  800089c:	4840      	ldr	r0, [pc, #256]	@ (80009a0 <handleButton+0x1c4>)
  800089e:	f000 f88f 	bl	80009c0 <sendUartMessage>
  80008a2:	e05f      	b.n	8000964 <handleButton+0x188>
@@ -921,7 +921,7 @@ void handleButton(uint32_t currentTime)
  80008e4:	719a      	strb	r2, [r3, #6]
 
           // Informace o přechodu do stavu 4
-          sprintf(outputBuffer, "\r\nEntered custom period state. Period: %lu ms\r\n", customBlinkPeriod);
+          sprintf(outputBuffer, "\r\n Stav vlastni delky periody. Delka periody: %lu ms\r\n", customBlinkPeriod);
  80008e6:	4b30      	ldr	r3, [pc, #192]	@ (80009a8 <handleButton+0x1cc>)
  80008e8:	681b      	ldr	r3, [r3, #0]
  80008ea:	461a      	mov	r2, r3
@@ -945,7 +945,7 @@ void handleButton(uint32_t currentTime)
  8000908:	701a      	strb	r2, [r3, #0]
 
           // Informace o návratu do stavu 2
-          sendUartMessage("\r\nReturned to button toggle state\r\n");
+          sendUartMessage("\r\nVraceno do stavu klikani tlacitka\r\n");
  800090a:	482a      	ldr	r0, [pc, #168]	@ (80009b4 <handleButton+0x1d8>)
  800090c:	f000 f858 	bl	80009c0 <sendUartMessage>
  8000910:	e028      	b.n	8000964 <handleButton+0x188>
@@ -967,7 +967,7 @@ void handleButton(uint32_t currentTime)
  8000926:	6093      	str	r3, [r2, #8]
 
           // Informace o nové periodě blikání
-          sprintf(outputBuffer, "\r\nNew blink period: %lu ms\r\n", customBlinkPeriod);
+          sprintf(outputBuffer, "\r\nNova perioda blikani: %lu ms\r\n", customBlinkPeriod);
  8000928:	4b1f      	ldr	r3, [pc, #124]	@ (80009a8 <handleButton+0x1cc>)
  800092a:	681b      	ldr	r3, [r3, #0]
  800092c:	461a      	mov	r2, r3
@@ -1003,7 +1003,7 @@ void handleButton(uint32_t currentTime)
  800095c:	609a      	str	r2, [r3, #8]
 
           // Informace o přechodu do stavu 2
-          sendUartMessage("\r\nEntered button toggle state\r\n");
+          sendUartMessage("\r\nVstup do stavu klikani tlacitka\r\n");
  800095e:	4817      	ldr	r0, [pc, #92]	@ (80009bc <handleButton+0x1e0>)
  8000960:	f000 f82e 	bl	80009c0 <sendUartMessage>
       }
@@ -1037,9 +1037,9 @@ void handleButton(uint32_t currentTime)
  80009a8:	20000000 	.word	0x20000000
  80009ac:	20000020 	.word	0x20000020
  80009b0:	08006a18 	.word	0x08006a18
- 80009b4:	08006a48 	.word	0x08006a48
- 80009b8:	08006a6c 	.word	0x08006a6c
- 80009bc:	08006a8c 	.word	0x08006a8c
+ 80009b4:	08006a50 	.word	0x08006a50
+ 80009b8:	08006a78 	.word	0x08006a78
+ 80009bc:	08006a9c 	.word	0x08006a9c
 
 080009c0 <sendUartMessage>:
 
@@ -1156,7 +1156,7 @@ void processCommand(void)
  8000a6e:	4b6d      	ldr	r3, [pc, #436]	@ (8000c24 <processCommand+0x21c>)
  8000a70:	2201      	movs	r2, #1
  8000a72:	719a      	strb	r2, [r3, #6]
-    sprintf(outputBuffer, "\r\nCommand: %s - Red LED turned ON\r\n", commandBuffer);
+    sprintf(outputBuffer, "\r\nCommand: %s - Cervena LED ON\r\n", commandBuffer);
  8000a74:	4a69      	ldr	r2, [pc, #420]	@ (8000c1c <processCommand+0x214>)
  8000a76:	496c      	ldr	r1, [pc, #432]	@ (8000c28 <processCommand+0x220>)
  8000a78:	486c      	ldr	r0, [pc, #432]	@ (8000c2c <processCommand+0x224>)
@@ -1166,7 +1166,7 @@ void processCommand(void)
  8000a80:	f7ff ff9e 	bl	80009c0 <sendUartMessage>
   // Neznámý příkaz
   else {
-    sprintf(outputBuffer, "\r\nError: Unknown command '%s'\r\n", commandBuffer);
+    sprintf(outputBuffer, "\r\nError: Neznamy prikaz: '%s'\r\n", commandBuffer);
     sendUartMessage(outputBuffer);
   }
 }
@@ -1183,7 +1183,7 @@ void processCommand(void)
  8000a96:	4b67      	ldr	r3, [pc, #412]	@ (8000c34 <processCommand+0x22c>)
  8000a98:	2201      	movs	r2, #1
  8000a9a:	719a      	strb	r2, [r3, #6]
-    sprintf(outputBuffer, "\r\nCommand: %s - Blue LED turned ON\r\n", commandBuffer);
+    sprintf(outputBuffer, "\r\nCommand: %s - Modra LED ON\r\n", commandBuffer);
  8000a9c:	4a5f      	ldr	r2, [pc, #380]	@ (8000c1c <processCommand+0x214>)
  8000a9e:	4966      	ldr	r1, [pc, #408]	@ (8000c38 <processCommand+0x230>)
  8000aa0:	4862      	ldr	r0, [pc, #392]	@ (8000c2c <processCommand+0x224>)
@@ -1205,7 +1205,7 @@ void processCommand(void)
  8000abe:	4b60      	ldr	r3, [pc, #384]	@ (8000c40 <processCommand+0x238>)
  8000ac0:	2201      	movs	r2, #1
  8000ac2:	719a      	strb	r2, [r3, #6]
-    sprintf(outputBuffer, "\r\nCommand: %s - Green LED turned ON\r\n", commandBuffer);
+    sprintf(outputBuffer, "\r\nCommand: %s - Zelena LED ON\r\n", commandBuffer);
  8000ac4:	4a55      	ldr	r2, [pc, #340]	@ (8000c1c <processCommand+0x214>)
  8000ac6:	495f      	ldr	r1, [pc, #380]	@ (8000c44 <processCommand+0x23c>)
  8000ac8:	4858      	ldr	r0, [pc, #352]	@ (8000c2c <processCommand+0x224>)
@@ -1227,7 +1227,7 @@ void processCommand(void)
  8000ae6:	4b4f      	ldr	r3, [pc, #316]	@ (8000c24 <processCommand+0x21c>)
  8000ae8:	2200      	movs	r2, #0
  8000aea:	719a      	strb	r2, [r3, #6]
-    sprintf(outputBuffer, "\r\nCommand: %s - Red LED turned OFF\r\n", commandBuffer);
+    sprintf(outputBuffer, "\r\nCommand: %s - Cervena LED OFF\r\n", commandBuffer);
  8000aec:	4a4b      	ldr	r2, [pc, #300]	@ (8000c1c <processCommand+0x214>)
  8000aee:	4957      	ldr	r1, [pc, #348]	@ (8000c4c <processCommand+0x244>)
  8000af0:	484e      	ldr	r0, [pc, #312]	@ (8000c2c <processCommand+0x224>)
@@ -1249,7 +1249,7 @@ void processCommand(void)
  8000b0e:	4b49      	ldr	r3, [pc, #292]	@ (8000c34 <processCommand+0x22c>)
  8000b10:	2200      	movs	r2, #0
  8000b12:	719a      	strb	r2, [r3, #6]
-    sprintf(outputBuffer, "\r\nCommand: %s - Blue LED turned OFF\r\n", commandBuffer);
+    sprintf(outputBuffer, "\r\nCommand: %s - Modra LED OFF\r\n", commandBuffer);
  8000b14:	4a41      	ldr	r2, [pc, #260]	@ (8000c1c <processCommand+0x214>)
  8000b16:	494f      	ldr	r1, [pc, #316]	@ (8000c54 <processCommand+0x24c>)
  8000b18:	4844      	ldr	r0, [pc, #272]	@ (8000c2c <processCommand+0x224>)
@@ -1271,7 +1271,7 @@ void processCommand(void)
  8000b36:	4b42      	ldr	r3, [pc, #264]	@ (8000c40 <processCommand+0x238>)
  8000b38:	2200      	movs	r2, #0
  8000b3a:	719a      	strb	r2, [r3, #6]
-    sprintf(outputBuffer, "\r\nCommand: %s - Green LED turned OFF\r\n", commandBuffer);
+    sprintf(outputBuffer, "\r\nCommand: %s - Zelena LED OFF\r\n", commandBuffer);
  8000b3c:	4a37      	ldr	r2, [pc, #220]	@ (8000c1c <processCommand+0x214>)
  8000b3e:	4947      	ldr	r1, [pc, #284]	@ (8000c5c <processCommand+0x254>)
  8000b40:	483a      	ldr	r0, [pc, #232]	@ (8000c2c <processCommand+0x224>)
@@ -1313,7 +1313,7 @@ void processCommand(void)
  8000b7e:	4b30      	ldr	r3, [pc, #192]	@ (8000c40 <processCommand+0x238>)
  8000b80:	2200      	movs	r2, #0
  8000b82:	719a      	strb	r2, [r3, #6]
-    sprintf(outputBuffer, "\r\nCommand: %s - Reset to initial state\r\n", commandBuffer);
+    sprintf(outputBuffer, "\r\nPrikaz: %s - reset to inicialniho stavu\r\n", commandBuffer);
  8000b84:	4a25      	ldr	r2, [pc, #148]	@ (8000c1c <processCommand+0x214>)
  8000b86:	4938      	ldr	r1, [pc, #224]	@ (8000c68 <processCommand+0x260>)
  8000b88:	4828      	ldr	r0, [pc, #160]	@ (8000c2c <processCommand+0x224>)
@@ -1366,7 +1366,7 @@ void processCommand(void)
  8000bd8:	69bb      	ldr	r3, [r7, #24]
  8000bda:	4a19      	ldr	r2, [pc, #100]	@ (8000c40 <processCommand+0x238>)
  8000bdc:	6093      	str	r3, [r2, #8]
-      sprintf(outputBuffer, "\r\nCommand: %s - All LEDs blinking with period %d ms\r\n", commandBuffer, period);
+      sprintf(outputBuffer, "\r\nCommand: %s - Vsechny LED blikaji s periodou: %d ms\r\n", commandBuffer, period);
  8000bde:	69bb      	ldr	r3, [r7, #24]
  8000be0:	4a0e      	ldr	r2, [pc, #56]	@ (8000c1c <processCommand+0x214>)
  8000be2:	4923      	ldr	r1, [pc, #140]	@ (8000c70 <processCommand+0x268>)
@@ -1377,7 +1377,7 @@ void processCommand(void)
  8000bec:	f7ff fee8 	bl	80009c0 <sendUartMessage>
 }
  8000bf0:	e010      	b.n	8000c14 <processCommand+0x20c>
-      sprintf(outputBuffer, "\r\nError: Invalid period in command '%s'\r\n", commandBuffer);
+      sprintf(outputBuffer, "\r\nError: Spatna perioda v prikazu '%s'\r\n", commandBuffer);
  8000bf2:	4a0a      	ldr	r2, [pc, #40]	@ (8000c1c <processCommand+0x214>)
  8000bf4:	491f      	ldr	r1, [pc, #124]	@ (8000c74 <processCommand+0x26c>)
  8000bf6:	480d      	ldr	r0, [pc, #52]	@ (8000c2c <processCommand+0x224>)
@@ -1387,7 +1387,7 @@ void processCommand(void)
  8000bfe:	f7ff fedf 	bl	80009c0 <sendUartMessage>
 }
  8000c02:	e007      	b.n	8000c14 <processCommand+0x20c>
-    sprintf(outputBuffer, "\r\nError: Unknown command '%s'\r\n", commandBuffer);
+    sprintf(outputBuffer, "\r\nError: Neznamy prikaz: '%s'\r\n", commandBuffer);
  8000c04:	4a05      	ldr	r2, [pc, #20]	@ (8000c1c <processCommand+0x214>)
  8000c06:	491c      	ldr	r1, [pc, #112]	@ (8000c78 <processCommand+0x270>)
  8000c08:	4808      	ldr	r0, [pc, #32]	@ (8000c2c <processCommand+0x224>)
@@ -1401,29 +1401,29 @@ void processCommand(void)
  8000c18:	46bd      	mov	sp, r7
  8000c1a:	bd80      	pop	{r7, pc}
  8000c1c:	200002f0 	.word	0x200002f0
- 8000c20:	08006aac 	.word	0x08006aac
+ 8000c20:	08006ac0 	.word	0x08006ac0
  8000c24:	20000004 	.word	0x20000004
- 8000c28:	08006ab0 	.word	0x08006ab0
+ 8000c28:	08006ac4 	.word	0x08006ac4
  8000c2c:	20000224 	.word	0x20000224
- 8000c30:	08006ad4 	.word	0x08006ad4
+ 8000c30:	08006ae8 	.word	0x08006ae8
  8000c34:	20000020 	.word	0x20000020
- 8000c38:	08006ad8 	.word	0x08006ad8
- 8000c3c:	08006b00 	.word	0x08006b00
+ 8000c38:	08006aec 	.word	0x08006aec
+ 8000c3c:	08006b0c 	.word	0x08006b0c
  8000c40:	2000003c 	.word	0x2000003c
- 8000c44:	08006b04 	.word	0x08006b04
- 8000c48:	08006b2c 	.word	0x08006b2c
- 8000c4c:	08006b34 	.word	0x08006b34
+ 8000c44:	08006b10 	.word	0x08006b10
+ 8000c48:	08006b30 	.word	0x08006b30
+ 8000c4c:	08006b38 	.word	0x08006b38
  8000c50:	08006b5c 	.word	0x08006b5c
  8000c54:	08006b64 	.word	0x08006b64
- 8000c58:	08006b8c 	.word	0x08006b8c
- 8000c5c:	08006b94 	.word	0x08006b94
- 8000c60:	08006bbc 	.word	0x08006bbc
+ 8000c58:	08006b84 	.word	0x08006b84
+ 8000c5c:	08006b8c 	.word	0x08006b8c
+ 8000c60:	08006bb0 	.word	0x08006bb0
  8000c64:	20000307 	.word	0x20000307
- 8000c68:	08006bc4 	.word	0x08006bc4
- 8000c6c:	08006bf0 	.word	0x08006bf0
- 8000c70:	08006bf8 	.word	0x08006bf8
- 8000c74:	08006c30 	.word	0x08006c30
- 8000c78:	08006c5c 	.word	0x08006c5c
+ 8000c68:	08006bb8 	.word	0x08006bb8
+ 8000c6c:	08006be4 	.word	0x08006be4
+ 8000c70:	08006bec 	.word	0x08006bec
+ 8000c74:	08006c24 	.word	0x08006c24
+ 8000c78:	08006c50 	.word	0x08006c50
 
 08000c7c <main>:
 /**
@@ -1505,22 +1505,22 @@ int main(void)
  8000cda:	f7ff fe87 	bl	80009ec <startUartRxInterrupt>
 
   // Zaslání start zprávy
-  sendUartMessage("\r\n--- LED Control System Started ---\r\n");
+  sendUartMessage("\r\n--- LED ovladaci system ---\r\n");
  8000cde:	4856      	ldr	r0, [pc, #344]	@ (8000e38 <main+0x1bc>)
  8000ce0:	f7ff fe6e 	bl	80009c0 <sendUartMessage>
-  sendUartMessage("Available commands:\r\n");
+  sendUartMessage("Dostupne prikazy:\r\n");
  8000ce4:	4855      	ldr	r0, [pc, #340]	@ (8000e3c <main+0x1c0>)
  8000ce6:	f7ff fe6b 	bl	80009c0 <sendUartMessage>
-  sendUartMessage("RON, BON, GON - Turn ON Red/Blue/Green LED\r\n");
+  sendUartMessage("RON, BON, GON - Zapnuti  Cervene / Modre / Zelene LED\r\n");
  8000cea:	4855      	ldr	r0, [pc, #340]	@ (8000e40 <main+0x1c4>)
  8000cec:	f7ff fe68 	bl	80009c0 <sendUartMessage>
-  sendUartMessage("ROFF, BOFF, GOFF - Turn OFF Red/Blue/Green LED\r\n");
+  sendUartMessage("ROFF, BOFF, GOFF - Vypnuti  Cervene / Modre / Zelene LED\r\n");
  8000cf0:	4854      	ldr	r0, [pc, #336]	@ (8000e44 <main+0x1c8>)
  8000cf2:	f7ff fe65 	bl	80009c0 <sendUartMessage>
-  sendUartMessage("RESET - Reset to initial state\r\n");
+  sendUartMessage("RESET - Reset na pocatecni stav\r\n");
  8000cf6:	4854      	ldr	r0, [pc, #336]	@ (8000e48 <main+0x1cc>)
  8000cf8:	f7ff fe62 	bl	80009c0 <sendUartMessage>
-  sendUartMessage("BLIK n - Blink all LEDs with period n ms\r\n");
+  sendUartMessage("BLIK n - Vsechny LED blikaji s periodou \"n\" \r\n");
  8000cfc:	4853      	ldr	r0, [pc, #332]	@ (8000e4c <main+0x1d0>)
  8000cfe:	f7ff fe5f 	bl	80009c0 <sendUartMessage>
 
@@ -1735,12 +1735,12 @@ int main(void)
  8000e2e:	bf00      	nop
  8000e30:	40021000 	.word	0x40021000
  8000e34:	48000800 	.word	0x48000800
- 8000e38:	08006c7c 	.word	0x08006c7c
- 8000e3c:	08006ca4 	.word	0x08006ca4
- 8000e40:	08006cbc 	.word	0x08006cbc
- 8000e44:	08006cec 	.word	0x08006cec
- 8000e48:	08006d20 	.word	0x08006d20
- 8000e4c:	08006d44 	.word	0x08006d44
+ 8000e38:	08006c70 	.word	0x08006c70
+ 8000e3c:	08006c90 	.word	0x08006c90
+ 8000e40:	08006ca4 	.word	0x08006ca4
+ 8000e44:	08006cdc 	.word	0x08006cdc
+ 8000e48:	08006d18 	.word	0x08006d18
+ 8000e4c:	08006d3c 	.word	0x08006d3c
  8000e50:	20000306 	.word	0x20000306
  8000e54:	20000307 	.word	0x20000307
  8000e58:	20000004 	.word	0x20000004
@@ -2887,7 +2887,7 @@ LoopForever:
   ldr r1, =_edata
  80013f4:	200000b4 	.word	0x200000b4
   ldr r2, =_sidata
- 80013f8:	08006f24 	.word	0x08006f24
+ 80013f8:	08006f20 	.word	0x08006f20
   ldr r2, =_sbss
  80013fc:	200000b4 	.word	0x200000b4
   ldr r4, =_ebss
@@ -5680,7 +5680,7 @@ HAL_StatusTypeDef HAL_RCC_OscConfig(RCC_OscInitTypeDef  *RCC_OscInitStruct)
  8002394:	6013      	str	r3, [r2, #0]
  8002396:	e013      	b.n	80023c0 <HAL_RCC_OscConfig+0x298>
  8002398:	40021000 	.word	0x40021000
- 800239c:	08006d70 	.word	0x08006d70
+ 800239c:	08006d6c 	.word	0x08006d6c
  80023a0:	20000058 	.word	0x20000058
  80023a4:	2000005c 	.word	0x2000005c
  80023a8:	4ba0      	ldr	r3, [pc, #640]	@ (800262c <HAL_RCC_OscConfig+0x504>)
@@ -7157,7 +7157,7 @@ HAL_StatusTypeDef HAL_RCC_ClockConfig(RCC_ClkInitTypeDef  *RCC_ClkInitStruct, ui
  8002bb8:	40022000 	.word	0x40022000
  8002bbc:	40021000 	.word	0x40021000
  8002bc0:	04c4b400 	.word	0x04c4b400
- 8002bc4:	08006d70 	.word	0x08006d70
+ 8002bc4:	08006d6c 	.word	0x08006d6c
  8002bc8:	20000058 	.word	0x20000058
  8002bcc:	2000005c 	.word	0x2000005c
 
@@ -7362,7 +7362,7 @@ uint32_t HAL_RCC_GetSysClockFreq(void)
  8002cd4:	4770      	bx	lr
  8002cd6:	bf00      	nop
  8002cd8:	40021000 	.word	0x40021000
- 8002cdc:	08006d88 	.word	0x08006d88
+ 8002cdc:	08006d84 	.word	0x08006d84
  8002ce0:	00f42400 	.word	0x00f42400
  8002ce4:	007a1200 	.word	0x007a1200
 
@@ -7411,7 +7411,7 @@ uint32_t HAL_RCC_GetPCLK1Freq(void)
  8002d20:	4618      	mov	r0, r3
  8002d22:	bd80      	pop	{r7, pc}
  8002d24:	40021000 	.word	0x40021000
- 8002d28:	08006d80 	.word	0x08006d80
+ 8002d28:	08006d7c 	.word	0x08006d7c
 
 08002d2c <HAL_RCC_GetPCLK2Freq>:
   * @note   Each time PCLK2 changes, this function must be called to update the
@@ -7438,7 +7438,7 @@ uint32_t HAL_RCC_GetPCLK2Freq(void)
  8002d4c:	4618      	mov	r0, r3
  8002d4e:	bd80      	pop	{r7, pc}
  8002d50:	40021000 	.word	0x40021000
- 8002d54:	08006d80 	.word	0x08006d80
+ 8002d54:	08006d7c 	.word	0x08006d7c
 
 08002d58 <RCC_SetFlashLatencyFromMSIRange>:
             voltage range.
@@ -7720,7 +7720,7 @@ static uint32_t RCC_GetSysClockFreqFromPLLSource(void)
  8002ec8:	40021000 	.word	0x40021000
  8002ecc:	00f42400 	.word	0x00f42400
  8002ed0:	007a1200 	.word	0x007a1200
- 8002ed4:	08006d88 	.word	0x08006d88
+ 8002ed4:	08006d84 	.word	0x08006d84
 
 08002ed8 <HAL_RCCEx_PeriphCLKConfig>:
   *         the RTC clock source: in this case the access to Backup domain is enabled.
@@ -12055,7 +12055,7 @@ HAL_StatusTypeDef UART_SetConfig(UART_HandleTypeDef *huart)
  80048e6:	bf00      	nop
  80048e8:	40008000 	.word	0x40008000
  80048ec:	00f42400 	.word	0x00f42400
- 80048f0:	08006db8 	.word	0x08006db8
+ 80048f0:	08006db4 	.word	0x08006db4
       }
       else
       {
@@ -15630,8 +15630,8 @@ static void UARTEx_SetNbDataToProcess(UART_HandleTypeDef *huart)
  8005e74:	f85d 7b04 	ldr.w	r7, [sp], #4
  8005e78:	4770      	bx	lr
  8005e7a:	bf00      	nop
- 8005e7c:	08006dd0 	.word	0x08006dd0
- 8005e80:	08006dd8 	.word	0x08006dd8
+ 8005e7c:	08006dcc 	.word	0x08006dcc
+ 8005e80:	08006dd4 	.word	0x08006dd4
 
 08005e84 <atoi>:
  8005e84:	220a      	movs	r2, #10
@@ -15768,7 +15768,7 @@ static void UARTEx_SetNbDataToProcess(UART_HandleTypeDef *huart)
  8005fb8:	d1f6      	bne.n	8005fa8 <_strtol_l.isra.0+0xd8>
  8005fba:	f8c8 1000 	str.w	r1, [r8]
  8005fbe:	e794      	b.n	8005eea <_strtol_l.isra.0+0x1a>
- 8005fc0:	08006de1 	.word	0x08006de1
+ 8005fc0:	08006ddd 	.word	0x08006ddd
 
 08005fc4 <strtol>:
  8005fc4:	4613      	mov	r3, r2
@@ -15840,10 +15840,10 @@ static void UARTEx_SetNbDataToProcess(UART_HandleTypeDef *huart)
  800604a:	4798      	blx	r3
  800604c:	3601      	adds	r6, #1
  800604e:	e7f2      	b.n	8006036 <__libc_init_array+0x1e>
- 8006050:	08006f1c 	.word	0x08006f1c
- 8006054:	08006f1c 	.word	0x08006f1c
- 8006058:	08006f1c 	.word	0x08006f1c
- 800605c:	08006f20 	.word	0x08006f20
+ 8006050:	08006f18 	.word	0x08006f18
+ 8006054:	08006f18 	.word	0x08006f18
+ 8006058:	08006f18 	.word	0x08006f18
+ 800605c:	08006f1c 	.word	0x08006f1c
 
 08006060 <__retarget_lock_acquire_recursive>:
  8006060:	4770      	bx	lr
@@ -16147,11 +16147,11 @@ static void UARTEx_SetNbDataToProcess(UART_HandleTypeDef *huart)
  8006324:	4638      	mov	r0, r7
  8006326:	f000 f91b 	bl	8006560 <_printf_i>
  800632a:	e7ed      	b.n	8006308 <_svfiprintf_r+0x1c0>
- 800632c:	08006ee1 	.word	0x08006ee1
- 8006330:	08006eeb 	.word	0x08006eeb
+ 800632c:	08006edd 	.word	0x08006edd
+ 8006330:	08006ee7 	.word	0x08006ee7
  8006334:	00000000 	.word	0x00000000
  8006338:	08006091 	.word	0x08006091
- 800633c:	08006ee7 	.word	0x08006ee7
+ 800633c:	08006ee3 	.word	0x08006ee3
 
 08006340 <sbrk_aligned>:
  8006340:	b570      	push	{r4, r5, r6, lr}
@@ -16620,8 +16620,8 @@ static void UARTEx_SetNbDataToProcess(UART_HandleTypeDef *huart)
  800678c:	2500      	movs	r5, #0
  800678e:	f104 0619 	add.w	r6, r4, #25
  8006792:	e7f5      	b.n	8006780 <_printf_i+0x220>
- 8006794:	08006ef2 	.word	0x08006ef2
- 8006798:	08006f03 	.word	0x08006f03
+ 8006794:	08006eee 	.word	0x08006eee
+ 8006798:	08006eff 	.word	0x08006eff
 
 0800679c <__malloc_lock>:
  800679c:	4801      	ldr	r0, [pc, #4]	@ (80067a4 <__malloc_lock+0x8>)

@@ -318,7 +318,7 @@ void handleButton(uint32_t currentTime)
           currentState = STATE_TRANSITIONAL;
 
           // Informace o přechodu do přechodného stavu
-          sendUartMessage("\r\nEntered transitional state\r\n");
+          sendUartMessage("\r\nVstup do prechodoveho stavu\r\n");
         }
       }
       // Uvolnění tlačítka
@@ -335,7 +335,7 @@ void handleButton(uint32_t currentTime)
           blueLed.mode = LED_MODE_BLINK_ASYM;
 
           // Informace o přechodu do stavu 4
-          sprintf(outputBuffer, "\r\nEntered custom period state. Period: %lu ms\r\n", customBlinkPeriod);
+          sprintf(outputBuffer, "\r\n Stav vlastni delky periody. Delka periody: %lu ms\r\n", customBlinkPeriod);
           sendUartMessage(outputBuffer);
         }
         // Krátký stisk - návrat do stavu 2
@@ -343,7 +343,7 @@ void handleButton(uint32_t currentTime)
           currentState = STATE_BUTTON_TOGGLE;
 
           // Informace o návratu do stavu 2
-          sendUartMessage("\r\nReturned to button toggle state\r\n");
+          sendUartMessage("\r\nVraceno do stavu klikani tlacitka\r\n");
         }
         // Ve stavu 4 - nastavení nové periody blikání červené LED
         else if (currentState == STATE_CUSTOM_PERIOD) {
@@ -351,7 +351,7 @@ void handleButton(uint32_t currentTime)
           redLed.blinkPeriod = customBlinkPeriod;
 
           // Informace o nové periodě blikání
-          sprintf(outputBuffer, "\r\nNew blink period: %lu ms\r\n", customBlinkPeriod);
+          sprintf(outputBuffer, "\r\nNova perioda blikani: %lu ms\r\n", customBlinkPeriod);
           sendUartMessage(outputBuffer);
         }
         // Ve stavu 1 - přechod do stavu 2
@@ -362,7 +362,7 @@ void handleButton(uint32_t currentTime)
           blueLed.blinkPeriod = 200; // 100ms perioda (50ms on, 50ms off)
 
           // Informace o přechodu do stavu 2
-          sendUartMessage("\r\nEntered button toggle state\r\n");
+          sendUartMessage("\r\nVstup do stavu klikani tlacitka\r\n");
         }
       }
     }
@@ -399,37 +399,37 @@ void processCommand(void)
   // Příkaz pro rozsvícení červené LED
   if (strcmp(upperCommand, "RON") == 0) {
     redLed.mode = LED_MODE_ON;
-    sprintf(outputBuffer, "\r\nCommand: %s - Red LED turned ON\r\n", commandBuffer);
+    sprintf(outputBuffer, "\r\nCommand: %s - Cervena LED ON\r\n", commandBuffer);
     sendUartMessage(outputBuffer);
   }
   // Příkaz pro rozsvícení modré LED
   else if (strcmp(upperCommand, "BON") == 0) {
     blueLed.mode = LED_MODE_ON;
-    sprintf(outputBuffer, "\r\nCommand: %s - Blue LED turned ON\r\n", commandBuffer);
+    sprintf(outputBuffer, "\r\nCommand: %s - Modra LED ON\r\n", commandBuffer);
     sendUartMessage(outputBuffer);
   }
   // Příkaz pro rozsvícení zelené LED
   else if (strcmp(upperCommand, "GON") == 0) {
     greenLed.mode = LED_MODE_ON;
-    sprintf(outputBuffer, "\r\nCommand: %s - Green LED turned ON\r\n", commandBuffer);
+    sprintf(outputBuffer, "\r\nCommand: %s - Zelena LED ON\r\n", commandBuffer);
     sendUartMessage(outputBuffer);
   }
   // Příkaz pro zhasnutí červené LED
   else if (strcmp(upperCommand, "ROFF") == 0) {
     redLed.mode = LED_MODE_OFF;
-    sprintf(outputBuffer, "\r\nCommand: %s - Red LED turned OFF\r\n", commandBuffer);
+    sprintf(outputBuffer, "\r\nCommand: %s - Cervena LED OFF\r\n", commandBuffer);
     sendUartMessage(outputBuffer);
   }
   // Příkaz pro zhasnutí modré LED
   else if (strcmp(upperCommand, "BOFF") == 0) {
     blueLed.mode = LED_MODE_OFF;
-    sprintf(outputBuffer, "\r\nCommand: %s - Blue LED turned OFF\r\n", commandBuffer);
+    sprintf(outputBuffer, "\r\nCommand: %s - Modra LED OFF\r\n", commandBuffer);
     sendUartMessage(outputBuffer);
   }
   // Příkaz pro zhasnutí zelené LED
   else if (strcmp(upperCommand, "GOFF") == 0) {
     greenLed.mode = LED_MODE_OFF;
-    sprintf(outputBuffer, "\r\nCommand: %s - Green LED turned OFF\r\n", commandBuffer);
+    sprintf(outputBuffer, "\r\nCommand: %s - Zelena LED OFF\r\n", commandBuffer);
     sendUartMessage(outputBuffer);
   }
   // Příkaz pro reset do stavu 1
@@ -441,7 +441,7 @@ void processCommand(void)
     blueLed.blinkPeriod = 500;
     greenLed.mode = LED_MODE_OFF;
 
-    sprintf(outputBuffer, "\r\nCommand: %s - Reset to initial state\r\n", commandBuffer);
+    sprintf(outputBuffer, "\r\nPrikaz: %s - reset to inicialniho stavu\r\n", commandBuffer);
     sendUartMessage(outputBuffer);
   }
   // Příkaz pro blikání s definovanou periodou
@@ -455,16 +455,16 @@ void processCommand(void)
       greenLed.mode = LED_MODE_BLINK;
       greenLed.blinkPeriod = period;
 
-      sprintf(outputBuffer, "\r\nCommand: %s - All LEDs blinking with period %d ms\r\n", commandBuffer, period);
+      sprintf(outputBuffer, "\r\nCommand: %s - Vsechny LED blikaji s periodou: %d ms\r\n", commandBuffer, period);
       sendUartMessage(outputBuffer);
     } else {
-      sprintf(outputBuffer, "\r\nError: Invalid period in command '%s'\r\n", commandBuffer);
+      sprintf(outputBuffer, "\r\nError: Spatna perioda v prikazu '%s'\r\n", commandBuffer);
       sendUartMessage(outputBuffer);
     }
   }
   // Neznámý příkaz
   else {
-    sprintf(outputBuffer, "\r\nError: Unknown command '%s'\r\n", commandBuffer);
+    sprintf(outputBuffer, "\r\nError: Neznamy prikaz: '%s'\r\n", commandBuffer);
     sendUartMessage(outputBuffer);
   }
 }
@@ -516,12 +516,12 @@ int main(void)
   startUartRxInterrupt();
 
   // Zaslání start zprávy
-  sendUartMessage("\r\n--- LED Control System Started ---\r\n");
-  sendUartMessage("Available commands:\r\n");
-  sendUartMessage("RON, BON, GON - Turn ON Red/Blue/Green LED\r\n");
-  sendUartMessage("ROFF, BOFF, GOFF - Turn OFF Red/Blue/Green LED\r\n");
-  sendUartMessage("RESET - Reset to initial state\r\n");
-  sendUartMessage("BLIK n - Blink all LEDs with period n ms\r\n");
+  sendUartMessage("\r\n--- LED ovladaci system ---\r\n");
+  sendUartMessage("Dostupne prikazy:\r\n");
+  sendUartMessage("RON, BON, GON - Zapnuti  Cervene / Modre / Zelene LED\r\n");
+  sendUartMessage("ROFF, BOFF, GOFF - Vypnuti  Cervene / Modre / Zelene LED\r\n");
+  sendUartMessage("RESET - Reset na pocatecni stav\r\n");
+  sendUartMessage("BLIK n - Vsechny LED blikaji s periodou \"n\" \r\n");
 
   /* USER CODE END 2 */
 
