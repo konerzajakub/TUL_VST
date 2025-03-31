@@ -35,7 +35,8 @@ typedef enum {
   STATE_INITIAL,      // Stav 1 - červená bliká 250ms, modrá 500ms
   STATE_BUTTON_TOGGLE,// Stav 2 - červená toggle, modrá bliká 100ms
   STATE_TRANSITIONAL, // Stav pro detekci dlouhého stisku
-  STATE_CUSTOM_PERIOD // Stav 4 - červená bliká s periodou podle délky stisku, modrá 100ms svítí/400ms nesvítí
+  STATE_CUSTOM_PERIOD, // Stav 4 - červená bliká s periodou podle délky stisku, modrá 100ms svítí/400ms nesvítí
+  STATE_BLINK_COMMAND  // Nový stav pro příkaz BLIK
 } StavAplikace;
 
 typedef enum {
@@ -454,6 +455,7 @@ void processCommand(void)
       blueLed.blinkPeriod = period;
       greenLed.mode = LED_MODE_BLINK;
       greenLed.blinkPeriod = period;
+      currentState = STATE_BLINK_COMMAND;  // Nastavit nový stav
 
       sprintf(outputBuffer, "\r\nCommand: %s - Vsechny LED blikaji s periodou: %d ms\r\n", commandBuffer, period);
       sendUartMessage(outputBuffer);
@@ -543,44 +545,48 @@ int main(void)
     // Aktualizace stavu LED diod
 
     // Červená LED - chování podle aktuálního stavu
-    if (currentState == STATE_INITIAL) {
-      // Ve stavu 1 bliká s periodou 250ms
-      if (redLed.mode != LED_MODE_ON && redLed.mode != LED_MODE_OFF) {
-        redLed.mode = LED_MODE_BLINK;
-        redLed.blinkPeriod = 250;
-      }
-    } else if (currentState == STATE_BUTTON_TOGGLE) {
-      // Ve stavu 2 je ovládána tlačítkem
-      if (redLed.mode != LED_MODE_ON && redLed.mode != LED_MODE_OFF) {
-        redLed.mode = LED_MODE_OFF; // Základní stav, přepínán tlačítkem
-      }
-    } else if (currentState == STATE_CUSTOM_PERIOD) {
-      // Ve stavu 4 bliká s periodou podle délky stisku
-      if (redLed.mode != LED_MODE_ON && redLed.mode != LED_MODE_OFF) {
-        redLed.mode = LED_MODE_BLINK;
-        redLed.blinkPeriod = customBlinkPeriod;
+    if (currentState != STATE_BLINK_COMMAND) {
+      if (currentState == STATE_INITIAL) {
+        // Ve stavu 1 bliká s periodou 250ms
+        if (redLed.mode != LED_MODE_ON && redLed.mode != LED_MODE_OFF) {
+          redLed.mode = LED_MODE_BLINK;
+          redLed.blinkPeriod = 250;
+        }
+      } else if (currentState == STATE_BUTTON_TOGGLE) {
+        // Ve stavu 2 je ovládána tlačítkem
+        if (redLed.mode != LED_MODE_ON && redLed.mode != LED_MODE_OFF) {
+          redLed.mode = LED_MODE_OFF; // Základní stav, přepínán tlačítkem
+        }
+      } else if (currentState == STATE_CUSTOM_PERIOD) {
+        // Ve stavu 4 bliká s periodou podle délky stisku
+        if (redLed.mode != LED_MODE_ON && redLed.mode != LED_MODE_OFF) {
+          redLed.mode = LED_MODE_BLINK;
+          redLed.blinkPeriod = customBlinkPeriod;
+        }
       }
     }
 
     // Modrá LED - chování podle aktuálního stavu
-    if (currentState == STATE_INITIAL) {
-      // Ve stavu 1 bliká s periodou 500ms
-      if (blueLed.mode != LED_MODE_ON && blueLed.mode != LED_MODE_OFF) {
-        blueLed.mode = LED_MODE_BLINK;
-        blueLed.blinkPeriod = 500;
-      }
-    } else if (currentState == STATE_BUTTON_TOGGLE || currentState == STATE_TRANSITIONAL) {
-      // Ve stavu 2 a přechodném stavu bliká s periodou 100ms
-      if (blueLed.mode != LED_MODE_ON && blueLed.mode != LED_MODE_OFF) {
-        blueLed.mode = LED_MODE_BLINK;
-        blueLed.blinkPeriod = 200; // 100ms perioda (50ms on, 50ms off)
-      }
-    } else if (currentState == STATE_CUSTOM_PERIOD) {
-      // Ve stavu 4 bliká asynchronně 100ms svítí/400ms nesvítí
-      if (blueLed.mode != LED_MODE_ON && blueLed.mode != LED_MODE_OFF) {
-        blueLed.mode = LED_MODE_BLINK_ASYM;
-        blueLed.onTime = 100;
-        blueLed.offTime = 400;
+    if (currentState != STATE_BLINK_COMMAND) {
+      if (currentState == STATE_INITIAL) {
+        // Ve stavu 1 bliká s periodou 500ms
+        if (blueLed.mode != LED_MODE_ON && blueLed.mode != LED_MODE_OFF) {
+          blueLed.mode = LED_MODE_BLINK;
+          blueLed.blinkPeriod = 500;
+        }
+      } else if (currentState == STATE_BUTTON_TOGGLE || currentState == STATE_TRANSITIONAL) {
+        // Ve stavu 2 a přechodném stavu bliká s periodou 100ms
+        if (blueLed.mode != LED_MODE_ON && blueLed.mode != LED_MODE_OFF) {
+          blueLed.mode = LED_MODE_BLINK;
+          blueLed.blinkPeriod = 200; // 100ms perioda (50ms on, 50ms off)
+        }
+      } else if (currentState == STATE_CUSTOM_PERIOD) {
+        // Ve stavu 4 bliká asynchronně 100ms svítí/400ms nesvítí
+        if (blueLed.mode != LED_MODE_ON && blueLed.mode != LED_MODE_OFF) {
+          blueLed.mode = LED_MODE_BLINK_ASYM;
+          blueLed.onTime = 100;
+          blueLed.offTime = 400;
+        }
       }
     }
 
